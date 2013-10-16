@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # by Wiesław Magusiak 2013-10-17
 # See man pages.
-VERSION=0.13
+VERSION=0.14
 function usage () {
 	echo -e "\n\e[1mvidcutmerger -i VideoFile [-o OutputClipName] [-t TimePoints] [-m] [-f fmt] [-h]\e[0m"
 	echo -e "Read \e[33mman pages\e[0m to see all options and learn details."

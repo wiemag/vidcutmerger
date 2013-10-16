@@ -3,7 +3,7 @@
 .TH man 1 "2013-10-17" "1.0" "vidcutmerger man pages"
 
 .SH NAME
-.B "vidcutmerger v0.12"
+.B "vidcutmerger"
 
 Cutting clips out of a video file and merging them.
 
