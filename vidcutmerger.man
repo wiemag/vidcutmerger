@@ -1,0 +1,119 @@
+.\" Manpage for vidcutmerger.sh
+
+.TH man 1 "2013-10-15" "1.0" "vidcutmerger man page"
+
+.SH NAME
+.B "vidcutmerger v0.12"
+
+Cutting clips out of a video file and merging them.
+
+.SH SYNOPSIS
+.B "vidcutmerger" 
+-i VideoFile [-o OutputBaseName] [-t CutPoints] [-m] [-f fmt] [-a AEnc] [-v VEnc] [-d] [-h] [-V]
+
+.SH "DESCRIPTION"
+This script cuts an input video file (see -i option) according to the cutting points stored in a text file (see -t option).
+.br
+Each line in the text file holds the starting and ending point of a clip to be cut.
+
+.SH OPTIONS
+
+.B -i VideoFile
+.br
+VideoFile is the input file that will be cut into clips according the other script parameters. 
+
+.B -o OutputBaseName
+.br
+OutputBaseName is the base name of output clips. Consecutive numbers and the original extension of the VideoFile are added to create clip file names:
+.br
+	OutputBaseName-NNN.EXT
+.br
+If the option is left out, the OutputBaseName defaults to "out".
+.P
+OutputBaseName does not need to include a file extension. However, if it does, the extension is interpreted as the format (FMT, see -f below) of the newly mereged video file. Note that clips are not encoded into the FMT format, and retain the original input video file extension (EXT).
+.br
+Also note that by including the format extension in the OutputBaseName, you set the 
+.B -f FMT 
+option and this setting takes precedence over whatever you may set the 
+.B -f FMT 
+option to. The 
+.B -m 
+option is also set automativcally up.
+
+.B -t CutPoints
+.br
+The CutPoints is a text file that lists cutting points. Each line specifies the starting and stopping times. The format of the line is
+.br
+	[[h:]m:]s [[h:]m:]s
+.br
+where h, m, and s are single or two-digit numbers (including zero padded numbers) denoting hours, minutes, and seconds respectively. The starting and ending points are separated by a single space. 
+.br
+The format
+.br
+	hh:mm:ss hh:mm:ss
+.br
+is also acceptable as a subset of the general format.
+.br
+Warning. No extra characters are allowed after the ending point.
+.br
+If the option is left out, the script looks for a file VideoFile.cut (see -i option); and if that file is not found, stops.
+
+.B -m
+.br
+If used, the option tells the scipt to merge clips into OutputBaseName.fmt.
+If the opition is left out, no merging of clips is done unless any of the -f, -a, -v is used explicitely, or if the "-o Output" file name includes an extension.
+
+.B -f FMT
+.br
+FMT denotes the video format of the output file to merge. If not set, EXT is used.
+If this option is used, it sets merging on. 
+.br
+See the -o option, too.
+
+.B -a AEnc
+.br
+An audio encoder used only to create the merged file:  BaseClipName.FMT
+If the option is used, it sets merging on.
+
+.B -v VEnc
+.br
+A video encoder used only to create the merged file:  BaseClipName.FMT
+If the option is used, it sets merging on.
+
+.B -d
+Switches on the debug mode to print information about some script variables and the encoding progress if the original format (EXT) is re-encoded into another format (FMT).
+
+.B -h 
+Displays a basic help message.
+
+.B -V 
+Displays the script version.
+
+.SH EXAMPLES
+.br
+
+vidcutmerger -i example1.mp4 
+.br
+The script looks for example1.cut with cutting points. If it finds the file, creates out-001.mp4, out-002.mp4,... and ends. If it does not find example.cut, the script is terminated immediately.
+
+vidcutmerger -i example2.mp4 -f avi
+.br
+An avi file is created by merging clips defined by example2.cut
+
+vidcutmerger -i example3.mp4 -c
+.br
+An mp4 file is created by merging clips defined by example3.cut.
+The clips are removed afterwards.
+
+./"SEE ALSO
+./"A list of related commands or functions.
+
+.SH BUGS
+.br
+Not a bug really, but ffmpeg does not create vstats_file (see ffmpeg man pages) when it merges clips without recoding, i.e. when audio and video codecs are "copy".
+
+.SH AUTHOR
+w.magusiak@gmail.com
+
+.SH COPYRIGHT
+Do what you like with the vidcutmerger. However, no warranty is given, and no responsible is taken for the use.
