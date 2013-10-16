@@ -1,7 +1,7 @@
 #!/usr/bin/bash
-# by Wiesław Magusiak 2013-10-16
+# by Wiesław Magusiak 2013-10-17
 # See man pages.
-VERSION=0.12
+VERSION=0.13
 function usage () {
 	echo -e "\n\e[1mvidcutmerger -i VideoFile [-o OutputClipName] [-t TimePoints] [-m] [-f fmt] [-h]\e[0m"
 	echo -e "Read \e[33mman pages\e[0m to see all options and learn details."
@@ -165,31 +165,31 @@ if [[ $MERGE -eq 1 ]]; then
 	if [[ $FMT == $EXT ]]; then
 		# Note:  -vstats_file is not created when codecs used are "copy" as hereunder.
 		# Are you sure? Tested with short files, yes, I am sure.
-		ffmpeg -vstats_file $STATS \
+		ffmpeg \
 			-y -f concat -i <(printf "file '%s'\n" ${OUTpath}/${OUT}-*.${EXT}) \
-			-c copy ${OUTpath}/${OUT}.${FMT} 2>/dev/null &
+			-c copy ${OUTpath}/${OUT}.${FMT} 2>/dev/null 
 	else
 		ffmpeg -vstats_file $STATS \
 			-y -f concat -i <(printf "file '%s'\n" ${OUTpath}/${OUT}-*.${EXT}) \
 			-c:v $VENC -b:v $VBR -c:a $AENC -ab $ABR \
 			${OUTpath}/${OUT}.${FMT} 2>/dev/null &
+		PID=$!
+		START=$(date +%s); FR_CNT=0; ETA=0; ELAPSED=0
+		while [ -e /proc/$PID ]; do # Is FFmpeg running?
+			sleep 2
+			CURFRM=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' $STATS) 
+			#CURFRM=$(tail -1 $STATS 2>&1 |awk '{print $2}')
+			if [ $CURFRM -gt $FR_CNT ]; then # Parsed sane or no?
+				FR_CNT=$CURFRM
+				PROGRESS=$(( 100 * FR_CNT / OUTFRM )) # Progbar calc.
+				ELAPSED=$(( $(date +%s) - START )); echo $ELAPSED > /tmp/elapsed.value
+				ETA=$(date -d @$(awk 'BEGIN{print int(('$ELAPSED' / '$FR_CNT') *\
+					('$OUTFRM' - '$FR_CNT'))}') -u +%H:%M:%S) # ETA calc.
+			fi
+			echo -ne "\rFrame: $FR_CNT of $OUTFRM Time: $(date -d @$ELAPSED -u +%H:%M:%S) ETA: $ETA ${PROGRESS}%" 1>&3 2>&4
+		done
+		echo -ne "\rFrame: $OUTFRM of $OUTFRM Time: $(date -d @$ELAPSED -u +%H:%M:%S) ETA: $ETA 100%" 1>&3 2>&4
+		rm $STATS
 	fi
-	PID=$!
-	START=$(date +%s); FR_CNT=0; ETA=0; ELAPSED=0
-	while [ -e /proc/$PID ]; do # Is FFmpeg running?
-		sleep 2
-		CURFRM=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' $STATS) 
-		#CURFRM=$(tail -1 $STATS 2>&1 |awk '{print $2}')
-		if [ $CURFRM -gt $FR_CNT ]; then # Parsed sane or no?
-			FR_CNT=$CURFRM
-			PROGRESS=$(( 100 * FR_CNT / OUTFRM )) # Progbar calc.
-			ELAPSED=$(( $(date +%s) - START )); echo $ELAPSED > /tmp/elapsed.value
-			ETA=$(date -d @$(awk 'BEGIN{print int(('$ELAPSED' / '$FR_CNT') *\
-				('$OUTFRM' - '$FR_CNT'))}') -u +%H:%M:%S) # ETA calc.
-		fi
-		echo -ne "\rFrame: $FR_CNT of $OUTFRM Time: $(date -d @$ELAPSED -u +%H:%M:%S) ETA: $ETA ${PROGRESS}%" 1>&3 2>&4
-	done
-	echo -ne "\rFrame: $OUTFRM of $OUTFRM Time: $(date -d @$ELAPSED -u +%H:%M:%S) ETA: $ETA 100%" 1>&3 2>&4
-	rm $STATS
 	rm ${OUT}-*.${EXT}
 fi

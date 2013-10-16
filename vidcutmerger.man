@@ -1,6 +1,6 @@
-.\" Manpage for vidcutmerger.sh
+.\" Man pages for vidcutmerger.sh
 
-.TH man 1 "2013-10-15" "1.0" "vidcutmerger man page"
+.TH man 1 "2013-10-17" "1.0" "vidcutmerger man pages"
 
 .SH NAME
 .B "vidcutmerger v0.12"
@@ -30,7 +30,7 @@ OutputBaseName is the base name of output clips. Consecutive numbers and the ori
 .br
 If the option is left out, the OutputBaseName defaults to "out".
 .P
-OutputBaseName does not need to include a file extension. However, if it does, the extension is interpreted as the format (FMT, see -f below) of the newly mereged video file. Note that clips are not encoded into the FMT format, and retain the original input video file extension (EXT).
+OutputBaseName does not need to include a file extension. However, if it does, the extension is interpreted as the format (FMT, see -f below) of the newly merged video file. Note that clips are not encoded into the FMT format, and retain the original input video file extension (EXT).
 .br
 Also note that by including the format extension in the OutputBaseName, you set the 
 .B -f FMT 
@@ -38,7 +38,7 @@ option and this setting takes precedence over whatever you may set the
 .B -f FMT 
 option to. The 
 .B -m 
-option is also set automativcally up.
+option is also set automatically up.
 
 .B -t CutPoints
 .br
@@ -60,8 +60,8 @@ If the option is left out, the script looks for a file VideoFile.cut (see -i opt
 
 .B -m
 .br
-If used, the option tells the scipt to merge clips into OutputBaseName.fmt.
-If the opition is left out, no merging of clips is done unless any of the -f, -a, -v is used explicitely, or if the "-o Output" file name includes an extension.
+If used, the option tells the script to merge clips into OutputBaseName.fmt.
+If the option is left out, no merging of clips is done unless any of the -f, -a, -v is used explicitly, or if the "-o Output" file name includes an extension.
 
 .B -f FMT
 .br
@@ -90,20 +90,22 @@ Displays a basic help message.
 Displays the script version.
 
 .SH EXAMPLES
-.br
 
-vidcutmerger -i example1.mp4 
+.I vidcutmerger -i example1.mp4
 .br
 The script looks for example1.cut with cutting points. If it finds the file, creates out-001.mp4, out-002.mp4,... and ends. If it does not find example.cut, the script is terminated immediately.
 
-vidcutmerger -i example2.mp4 -f avi
+.I vidcutmerger -i example2.mp4 -f avi
 .br
-An avi file is created by merging clips defined by example2.cut
+A file named out.avi is created by merging clips defined by example2.cut. The clips are removed afterwards.
 
-vidcutmerger -i example3.mp4 -c
+.I vidcutmerger -i example3.mp4 -o output.avi
 .br
-An mp4 file is created by merging clips defined by example3.cut.
-The clips are removed afterwards.
+A file output.avi is created by merging mp4 clips. The cutting points are read from example3.cut. The clips are removed afterwards.
+
+.I vidcutmerger -i example4.mp4 -o xyz -t mycuts -d
+.br
+No merging is done. Just xyz-NNN.mp4 clips are cut according to a file named mycuts. The -d option makes the output verbose. If the -m option were used additionally, a file xyz.mp4 would be created and all the xyz-NNN.mp4 clips would be removed.
 
 ./"SEE ALSO
 ./"A list of related commands or functions.
@@ -113,7 +115,7 @@ The clips are removed afterwards.
 Not a bug really, but ffmpeg does not create vstats_file (see ffmpeg man pages) when it merges clips without recoding, i.e. when audio and video codecs are "copy".
 
 .SH AUTHOR
-w.magusiak@gmail.com
+Wiesław Magusiak <w.magusiak at gmail . com>
 
 .SH COPYRIGHT
 Do what you like with the vidcutmerger. However, no warranty is given, and no responsible is taken for the use.
