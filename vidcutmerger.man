@@ -74,11 +74,23 @@ See the -o option, too.
 .br
 An audio encoder used only to create the merged file:  BaseClipName.FMT
 If the option is used, it sets merging on.
+.br
+The default value is 
+.I libmp3lame
+, or 
+.I copy 
+if the input and output files have the same format.
 
 .B -v VEnc
 .br
 A video encoder used only to create the merged file:  BaseClipName.FMT
 If the option is used, it sets merging on.
+.br
+The default value is 
+.I libxvid
+, or 
+.I copy 
+if the input and output files have the same format.
 
 .B -d
 Switches on the debug mode to print information about some script variables and the encoding progress if the original format (EXT) is re-encoded into another format (FMT).
