@@ -1,7 +1,7 @@
 #!/usr/bin/bash
-# by Wiesław Magusiak 2013-10-17
+# by Wiesław Magusiak 2013-10-16
 # See man pages.
-VERSION=0.14
+VERSION=0.15 		# 2013-10-20, additional safeguards
 function usage () {
 	echo -e "\n\e[1mvidcutmerger -i VideoFile [-o OutputClipName] [-t TimePoints] [-m] [-f fmt] [-h]\e[0m"
 	echo -e "Read \e[33mman pages\e[0m to see all options and learn details."
@@ -23,6 +23,28 @@ function clockize () {
 	PARAM=$((PARAM % 3600))
 	echo ${s}$(printf %02d $((PARAM / 60))):$(printf %02d $((PARAM % 60)))
 }
+function v_enc_supp () {
+	echo $(ffmpeg -encoders 2>&1|grep "V..... "|awk '{print $2}'|grep $1|wc -w)
+}
+function a_enc_supp () {
+	echo $(ffmpeg -encoders 2>&1|grep "A..... "|awk '{print $2}'|grep $1|wc -w)
+}
+
+declare -a EXTENSIONS=( mpg avi wav swf flv rm au nut mov mp4 dv mkv wmv asf 3gp ogm )
+
+function in_array () {
+	local e
+	for e in "${@:2}"; do [[ "$e" == "$1" ]] && { echo 1; exit;} ; done
+	echo 0
+}
+#---This function may replace function 'in_array' --------------
+function fmt_supp () {
+	echo $(ffmpeg -formats 2>/dev/null | \
+		awk ' $1=="D" || $1=="E" || $1=="DE" {print $2}' | \
+		grep $1 | wc -w)
+}
+
+
 while getopts  ":i:o:t:mf:a:v:hVd" flag
 do
 	case "$flag" in
@@ -31,8 +53,12 @@ do
 		t) CUTPOINTS="$OPTARG";; 		# Text file with starting points and clips lenghts
 		m) MERGE=1;; 					# Merge clips
 		f) MERGE=1; FMT="$OPTARG";; 	# Format (extension); defaults to "avi" if not declared.
-		a) MERGE=1; AENC="$OPTARG";; 	# copy for cutting; libmp3lame for encoding
-		v) MERGE=1; VENC="$OPTARG";; 	# copy for cutting; xvid for encoding
+		a) MERGE=1; AENC="$OPTARG"; 	# Don't leave a trailing space after backslash below!
+			(( $(a_enc_supp $AENC) )) || { \
+				echo "Error:  Audio encoder not supported."; exit 10;};;
+		v) MERGE=1; VENC="$OPTARG"; 	# Don't leave a trailing space after backslash below!
+			(( $(v_enc_supp $VENC) )) || { \
+				echo "Error:  Video encoder not supported."; exit 11;};;
 		V) echo "Version ${VERSION}"; exit;;
 		h) usage; exit;;
 		d) DEBUG=1;; 					# Debug/Verbose: prints the values of some variables
@@ -44,11 +70,17 @@ exec 3>&1
 exec 4>&2
 ((DEBUG)) || { exec 1>/dev/null; exec 2>/dev/null;} 
 
+#---DEPEDENCIES--------------------------------------------------------------------------------
+[[ $(which ffmpeg 2>/dev/null) ]] || { echo "Missing dependency:  ffmpeg" ; exit 1;}
+[[ $(which awk 2>/dev/null) ]] || { echo "Missing dependency:  awk" ; exit 1;}
+
 #---START--------------------------------------------------------------------------------------
-[[ "x$INP" = "x" ]] && { echo "Missing input file." 1>&3 2>&4; exit 1;}
-[[ -f "$INP" ]] || { echo "File $INP does not exist." 1>&3 2>&4; exit 2;}
+[[ "x$INP" = "x" ]] && { echo "Missing input file." 1>&3 2>&4; exit 2;}
+[[ -f "$INP" ]] || { echo "File $INP does not exist." 1>&3 2>&4; exit 3;}
 CUTPOINTS="${CUTPOINTS-${INP%.*}.cut}"
-[[ -f "${CUTPOINTS}" ]] || { echo "File ${CUTPOINTS} does not exist." 1>&3 2>&4; exit 3;}
+[[ -f "${CUTPOINTS}" ]] || { echo "File ${CUTPOINTS} does not exist." 1>&3 2>&4; exit 4;}
+echo -e "Input file: \e[1m${INP}\e[0m"
+echo -e "Input file is clipped according to: \e[1m${CUTPOINTS}\e[0m"
 OUT=${OUT-out} 			# base output name
 OUTpath=${OUT%/*} 		# output path if included in OUT
 [[ "$OUT" == "$OUTpath" ]] && OUTpath=$(pwd)
@@ -56,10 +88,19 @@ EXT=${INP##*.} 			# original video file format
 MERGE=${MERGE-0}
 FMT=${FMT-$EXT} 		# final output file format
 x=${OUT##*.}
-if [[ ${#x} == 3 && "$x" != "$OUT" ]]; then 	# assume file extension (format of video output)
-	FMT=$x 				# takes precedence over the FMT declared with the -f option
-	OUT=${OUT%.*} 		# make $OUT a base output name
-	MERGE="1" 			# assume user wants clips merged into this format
+# assume file extension (format of video output) if $OUT has a defined/recognizable extension
+if [[ ${#x} -ge 0 && "$x" != "$OUT" ]]; then 	
+	echo -en "[Option -o info]:  Extension \e[1m${x}\e[0m "
+	if [[ $(in_array "$x" ${EXTENSIONS[@]}) -gt 0 ]]; then
+		FMT=$x 				# takes precedence over the FMT declared with the -f option
+		OUT=${OUT%.*} 		# make $OUT a base output name
+		MERGE="1" 			# assume user wants clips merged into this format
+		echo "assumed as the output file extension/format."
+	else
+		echo -n "not recognised. "
+		(( MERGE )) && echo -e "Format \e[1m${FMT}\e[0m will be used for merging." || \
+			echo -e "\n"
+	fi
 fi
 if [[ $MERGE -eq 0 || $FMT = $EXT ]]; then
 	AENC=${AENC-copy}
@@ -72,9 +113,8 @@ FPS=$(ffprobe "$INP" 2>&1 | grep tbr|cut -d, -f5|cut -d" " -f2)
 MAXLEN=$(secondize $(ffprobe "$INP" 2>&1 |grep Duration|cut -d. -f1|cut -d" " -f4))
 PART=1 				# clip/part number
 CR=$'\n' 			# carriage return
-#---Debug/Verbose mode info--------------------------------------------------------------------
-echo -e "Input file: \e[1m${INP}\e[0m"
-echo -e "Input file is clipped according to: \e[1m${CUTPOINTS}\e[0m"
+
+#--Debug/Verbose mode info--------------------------------------------------------------------
 echo Output clip files name template: "${OUT}-<num>.${EXT}"
 if (($MERGE)); then
 	echo -e "Output video file name: \e[1m${OUTpath}/${OUT}.${FMT}\e[0m"
@@ -113,7 +153,7 @@ for line in "${lines[@]}"; do
 	BEG=${line% *}
 	if [[ $BEG == ${line/ /} ]]; then
 		echo "Error:  Wrong cutting points. Check line #${PART}." 1>&3 2>&4
-		exit 4
+		exit 5
 	fi
 	BEGSEK=$(secondize ${BEG})
 	if [[ $FINSEK -ge $BEGSEK ]]; then
@@ -126,7 +166,7 @@ for line in "${lines[@]}"; do
 		LEN=$((FINSEK - BEGSEK))
 		if [[ $LEN -lt 0 ]]; then
 			echo "Error:  Wrong cutting points. Check line #${PART}." 1>&3 2>&4
-			exit 5
+			exit 6
 		fi
 		printf "\tClip %02d:  " ${PART}
 		[[ $LEN -eq 0 ]] && echo "Zero-length clip. Skipping." 1>&3 2>&4
@@ -140,13 +180,16 @@ for line in "${lines[@]}"; do
 			CZAS2=$((CZAS2 + ${x#0}))
 		fi
 	else
-		echo "Error: Clip #${PART} starting point beyond the input file length." 1>&3
-		exit 6
+		echo "Error:  Clip #${PART} starting point beyond the input file length." 1>&3
+		exit 7
 	fi
 	((PART++))
 done
 CZAS=$((CZAS1 + CZAS2 / 100))
 CZAS2=$((CZAS2 % 100))
+
+(( $CZAS )) || { echo "Error:  Wrong cutting points." 1>&3 ; exit 8;}
+
 #---Merging. The ffmpeg version 1.1+ required (v2.0 available when this script is creted).-----
 STATS="/tmp/vidcutmerger.stats"
 if [[ $MERGE -eq 1 ]]; then

@@ -1,6 +1,6 @@
 .\" Man pages for vidcutmerger.sh
 
-.TH man 1 "2013-10-17" "1.0" "vidcutmerger man pages"
+.TH man 1 "2013-10-20" "1.0" "vidcutmerger man pages"
 
 .SH NAME
 .B "vidcutmerger"
@@ -30,11 +30,15 @@ OutputBaseName is the base name of output clips. Consecutive numbers and the ori
 .br
 If the option is left out, the OutputBaseName defaults to "out".
 .P
-OutputBaseName does not need to include a file extension. However, if it does, the extension is interpreted as the format (FMT, see -f below) of the newly merged video file. Note that clips are not encoded into the FMT format, and retain the original input video file extension (EXT).
-.br
+OutputBaseName does not need to include a file extension. However, if it does and such extension is recognizable by 
+.I ffmpeg
+, the extension is interpreted as the format (FMT, see -f below) of the newly merged video file.
+.P
+Note that clips are never encoded into the FMT format, and retain the original input video file extension (EXT).
+.P
 Also note that by including the format extension in the OutputBaseName, you set the 
 .B -f FMT 
-option and this setting takes precedence over whatever you may set the 
+option and this setting takes precedence over whatever you may have set the 
 .B -f FMT 
 option to. The 
 .B -m 
@@ -72,7 +76,8 @@ See the -o option, too.
 
 .B -a AEnc
 .br
-An audio encoder used only to create the merged file:  BaseClipName.FMT
+An audio encoder is used only to create the merged file:  BaseClipName.FMT
+.br
 If the option is used, it sets merging on.
 .br
 The default value is 
@@ -83,8 +88,9 @@ if the input and output files have the same format.
 
 .B -v VEnc
 .br
-A video encoder used only to create the merged file:  BaseClipName.FMT
-If the option is used, it sets merging on.
+A video encoder is used only to create the merged file:  BaseClipName.FMT
+.br
+The option, if used, sets merging on.
 .br
 The default value is 
 .I libxvid
@@ -95,7 +101,7 @@ if the input and output files have the same format.
 .B -d
 Switches on the debug mode to print information about some script variables and the encoding progress if the original format (EXT) is re-encoded into another format (FMT).
 
-.B -h 
+.B -h
 Displays a basic help message.
 
 .B -V 
@@ -103,21 +109,29 @@ Displays the script version.
 
 .SH EXAMPLES
 
-.I vidcutmerger -i example1.mp4
+.B (1)  vidcutmerger -i example1.mp4
 .br
 The script looks for example1.cut with cutting points. If it finds the file, creates out-001.mp4, out-002.mp4,... and ends. If it does not find example.cut, the script is terminated immediately.
 
-.I vidcutmerger -i example2.mp4 -f avi
+.B (2)  vidcutmerger -i example2.mp4 -f avi
 .br
 A file named out.avi is created by merging clips defined by example2.cut. The clips are removed afterwards.
 
-.I vidcutmerger -i example3.mp4 -o output.avi
+.B (3)  vidcutmerger -i example3.mp4 -o output.avi
 .br
 A file output.avi is created by merging mp4 clips. The cutting points are read from example3.cut. The clips are removed afterwards.
 
-.I vidcutmerger -i example4.mp4 -o xyz -t mycuts -d
+.B (4)  vidcutmerger -i example4.mp4 -o xyz -t mycuts -d
 .br
 No merging is done. Just xyz-NNN.mp4 clips are cut according to a file named mycuts. The -d option makes the output verbose. If the -m option were used additionally, a file xyz.mp4 would be created and all the xyz-NNN.mp4 clips would be removed.
+
+.B (5)  vidcutmerger -i example5.mp4 -o xyz.avi -f mpg -t mycuts
+.br
+File xyz.avi is created. The -f option is ignored.
+
+.B (6)  vidcutmerger -i example6.mp4 -o xyz.ccc -f avi -t mycuts
+.br
+File xyz.ccc.avi is created as the '.ccc' extension is not recognizable by ffmpeg.
 
 ./"SEE ALSO
 ./"A list of related commands or functions.
