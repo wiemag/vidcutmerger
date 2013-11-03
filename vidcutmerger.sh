@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # by Wiesław Magusiak 2013-10-16
 # See man pages.
-VERSION=0.15 		# 2013-10-20, additional safeguards
+VERSION=0.16 		# 2013-10-20, checking format (-f and -o)
 function usage () {
 	echo -e "\n\e[1mvidcutmerger -i VideoFile [-o OutputClipName] [-t TimePoints] [-m] [-f fmt] [-h]\e[0m"
 	echo -e "Read \e[33mman pages\e[0m to see all options and learn details."
@@ -30,14 +30,14 @@ function a_enc_supp () {
 	echo $(ffmpeg -encoders 2>&1|grep "A..... "|awk '{print $2}'|grep $1|wc -w)
 }
 
-declare -a EXTENSIONS=( mpg avi wav swf flv rm au nut mov mp4 dv mkv wmv asf 3gp ogm )
-
+declare -a EXTENSIONS=( avi mp4 mpg mpeg wav swf flv rm au nut mov dv mkv wmv asf 3gp ogm )
+#---The second parameter of this function is an array, ${array[@]}---
 function in_array () {
 	local e
 	for e in "${@:2}"; do [[ "$e" == "$1" ]] && { echo 1; exit;} ; done
 	echo 0
 }
-#---This function may replace function 'in_array' --------------
+#---This function may replace function 'in_array' -------------------
 function fmt_supp () {
 	echo $(ffmpeg -formats 2>/dev/null | \
 		awk ' $1=="D" || $1=="E" || $1=="DE" {print $2}' | \
@@ -48,16 +48,19 @@ function fmt_supp () {
 while getopts  ":i:o:t:mf:a:v:hVd" flag
 do
 	case "$flag" in
-		i) INP="$OPTARG";; 				# Input video file
-		o) OUT="$OPTARG";; 				# Base output name
-		t) CUTPOINTS="$OPTARG";; 		# Text file with starting points and clips lenghts
-		m) MERGE=1;; 					# Merge clips
-		f) MERGE=1; FMT="$OPTARG";; 	# Format (extension); defaults to "avi" if not declared.
-		a) MERGE=1; AENC="$OPTARG"; 	# Don't leave a trailing space after backslash below!
-			(( $(a_enc_supp $AENC) )) || { \
+		i) INP="$OPTARG";; 			# Input video file
+		o) OUT="$OPTARG";; 			# Base output name
+		t) CUTPOINTS="$OPTARG";; 	# Text file with starting points and clips lenghts
+		m) MERGE=1;; 				# Merge clips
+		f) x="$OPTARG"; 			# Format (extension); defaults to "avi" if not declared.
+			(( $(in_array $x ${EXTENSIONS[@]}) )) && { FMT=${x}; MERGE=1;} || { 
+				echo -n "[Option -f info]:  "; 
+				echo -e "Format \e[1m${x}\e[0m is not recognized and will be ignored.";};;
+		a) MERGE=1; AENC="$OPTARG"; 	# Dont leave a trailing space after backslash below!
+			(( $(a_enc_supp $AENC) )) || { 
 				echo "Error:  Audio encoder not supported."; exit 10;};;
 		v) MERGE=1; VENC="$OPTARG"; 	# Don't leave a trailing space after backslash below!
-			(( $(v_enc_supp $VENC) )) || { \
+			(( $(v_enc_supp $VENC) )) || { 
 				echo "Error:  Video encoder not supported."; exit 11;};;
 		V) echo "Version ${VERSION}"; exit;;
 		h) usage; exit;;
@@ -97,7 +100,7 @@ if [[ ${#x} -ge 0 && "$x" != "$OUT" ]]; then
 		MERGE="1" 			# assume user wants clips merged into this format
 		echo "assumed as the output file extension/format."
 	else
-		echo -n "not recognised. "
+		echo -en "not recognised. "
 		(( MERGE )) && echo -e "Format \e[1m${FMT}\e[0m will be used for merging." || \
 			echo -e "\n"
 	fi
